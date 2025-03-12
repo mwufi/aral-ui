@@ -1,7 +1,7 @@
 [project]
 name = "aral"
 version = "0.1.0"
-description = "Add your description here"
+description = "One-Line Agent Deployment Framework"
 authors = [
     { name = "Zen T", email = "ztang230@gmail.com" }
 ]
@@ -10,8 +10,8 @@ readme = "README.md"
 requires-python = ">= 3.8"
 
 [build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
 
 [tool.rye]
 managed = true
@@ -22,3 +22,9 @@ allow-direct-references = true
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/aral"]
+
+[tool.setuptools.package-data]
+aral = ["ui/frontend/.next/**/*", "ui/frontend/public/**/*"]
+
+[project.scripts]
+aral-build-ui = "aral.ui.build:main"
