@@ -5,7 +5,10 @@ description = "One-Line Agent Deployment Framework"
 authors = [
     { name = "Zen T", email = "ztang230@gmail.com" }
 ]
-dependencies = []
+dependencies = [
+    "fastapi>=0.115.11",
+    "uvicorn>=0.34.0",
+]
 readme = "README.md"
 requires-python = ">= 3.8"
 

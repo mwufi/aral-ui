@@ -19,11 +19,11 @@ class UIServer:
             allow_headers=["*"],
         )
         
-        # Mount the Next.js static files
-        frontend_dir = Path(__file__).parent / "frontend" / ".next"
-        if frontend_dir.exists():
-            self.app.mount("/_next", StaticFiles(directory=str(frontend_dir / "static")), name="next-static")
-            self.app.mount("/public", StaticFiles(directory=str(Path(__file__).parent / "frontend" / "public")), name="public")
+        # Mount the Next.js static files - using static export
+        static_export_dir = Path(__file__).parent / "frontend" / "out"
+        if static_export_dir.exists():
+            # Mount the static export at root
+            self.app.mount("/", StaticFiles(directory=str(static_export_dir), html=True), name="static-export")
         
         # API routes
         self.setup_routes()
@@ -48,12 +48,13 @@ class UIServer:
         
         @self.app.get("/{full_path:path}")
         async def serve_frontend(full_path: str):
-            # Serve the Next.js index.html for all non-API routes
-            index_path = Path(__file__).parent / "frontend" / ".next" / "server" / "pages" / "index.html"
-            if index_path.exists():
-                with open(index_path) as f:
-                    return HTMLResponse(content=f.read())
-            return HTMLResponse(content="UI not built. Run 'cd aral/ui/frontend && bun run build' to build the UI.")
+            # Only reached if the static files mount doesn't handle the request
+            static_export_dir = Path(__file__).parent / "frontend" / "out"
+            if not static_export_dir.exists():
+                return HTMLResponse(content="UI not built. Run 'cd src/aral/ui/frontend && bun run build' to build the UI.")
+            
+            # If we get here, the path wasn't found in the static export
+            return HTMLResponse(content="Page not found", status_code=404)
     
     def run(self, host="0.0.0.0", port=3000):
         import uvicorn
