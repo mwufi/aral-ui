@@ -1,4 +1,10 @@
 from aral.agent import BaseAgent
+from openai import OpenAI
+
+import dotenv
+dotenv.load_dotenv()
+
+client = OpenAI()
 
 class SimpleAgent(BaseAgent):
     def init(self):
@@ -9,12 +15,24 @@ class SimpleAgent(BaseAgent):
         # Add the user message to the store
         self.message_store.add_message(convo_id, message, role="user")
         
-        # Generate a response - in a real agent, this would use an LLM
-        response = f"You said: {message}"
-        
+        # Generate a response using OpenAI if available, otherwise use a simple echo
+        openai_messages = [
+            {'role': m.role, 'content': m.content}
+            for m in self.message_store.get_conversation(convo_id).messages
+        ]
+        response = client.chat.completions.create(
+            model="gpt-4o",
+            messages=openai_messages
+        )
+        # Extract the actual message content from the ChatCompletion response
+        response_text = response.choices[0].message.content
+
         # Add the assistant response to the store and return it
-        self.message_store.add_message(convo_id, response, role="assistant")
-        return response
+        self.message_store.add_message(convo_id, response_text, role="assistant")
+
+        print(self.message_store.get_conversation(convo_id))
+        # Return just the response text instead of the entire ChatCompletion object
+        return response_text
 
 if __name__ == "__main__":
     import argparse
