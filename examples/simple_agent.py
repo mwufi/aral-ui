@@ -6,7 +6,8 @@ class SimpleAgent(BaseAgent):
         pass
     
     def on_message(self, convo_id, message):
-        # Add the user message to the store (already done in BaseAgent)
+        # Add the user message to the store
+        self.message_store.add_message(convo_id, message, role="user")
         
         # Generate a response - in a real agent, this would use an LLM
         response = f"You said: {message}"
