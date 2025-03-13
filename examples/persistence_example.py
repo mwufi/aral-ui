@@ -3,30 +3,20 @@
 Example script demonstrating the use of the MessageStore persistence layer.
 """
 
-import os
 import sys
 from pathlib import Path
 
 # Add the src directory to the Python path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from src.aral.storage import JsonFileStorage, PersistentMessageStore
+from src.aral.storage import MessageStore
 
 
 def main():
     """Run the example."""
-    # Create a data directory
-    data_dir = Path("./data")
-    data_dir.mkdir(exist_ok=True)
-    
-    # Create a storage provider
-    storage = JsonFileStorage(storage_dir=str(data_dir))
-    
-    # Create a persistent message store
-    store = PersistentMessageStore(storage_provider=storage)
-    
-    # Initialize the store (loads existing data if available)
-    store.initialize()
+    # Create a message store with file persistence
+    data_dir = "./data"
+    store = MessageStore(save_dir=data_dir)  # Creates directory if not existing
     
     # Print existing conversations
     print("Existing conversations:")
@@ -74,7 +64,7 @@ def main():
     for i, action in enumerate(conversation.actions):
         print(f"  {i+1}. [{action.action_type}]: {action.data}")
     
-    print("\nData is automatically persisted to:", data_dir.absolute())
+    print("\nData is automatically persisted to:", Path(data_dir).absolute())
     print("Run this script again to see persistence in action!")
 
 

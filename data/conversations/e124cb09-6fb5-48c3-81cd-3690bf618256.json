@@ -24,6 +24,13 @@
       "role": "user",
       "created_at": "2025-03-13T15:11:38.756750",
       "metadata": {}
+    },
+    {
+      "id": "c0378268-e316-4ce2-af0c-28fb9deb7deb",
+      "content": "Hello again! Message #4",
+      "role": "user",
+      "created_at": "2025-03-13T15:28:46.874121",
+      "metadata": {}
     }
   ],
   "actions": [

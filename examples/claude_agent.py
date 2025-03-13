@@ -72,12 +72,12 @@ def format_anthropic_messages(messages):
     ]
 
 from aral.agent import BaseAgent
-from aral.storage import PersistentMessageStore, JsonFileStorage
+from aral.storage import MessageStore
 
 class SimpleAgent(BaseAgent):
     def init(self):
         # Any additional initialization can go here
-        self.message_store = PersistentMessageStore(storage_provider=JsonFileStorage('./data'))
+        self.message_store = MessageStore(save_dir='./convos')  # Creates directory if not existing
     
     def on_message(self, convo_id, message):
         # Add the user message to the store

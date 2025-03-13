@@ -1,10 +1,10 @@
-# Aral MessageStore Persistence
+# Aral MessageStore
 
-This module provides persistence capabilities for the Aral MessageStore, allowing conversations, messages, and actions to be stored and retrieved from disk.
+This module provides a MessageStore for the Aral framework with built-in persistence capabilities, allowing conversations, messages, and actions to be stored and retrieved from disk.
 
 ## Overview
 
-The persistence layer is designed to be:
+The MessageStore is designed to be:
 
 1. **Simple**: Easy to understand and use
 2. **Reliable**: Ensures data isn't lost during application restarts
@@ -12,59 +12,42 @@ The persistence layer is designed to be:
 
 ## Components
 
-### StorageProvider
+### MessageStore
 
-An abstract interface that defines the operations required for persistence:
+The main class for storing conversations, messages, and actions:
 
-- `initialize()`: Set up the storage provider
-- `save_store(store)`: Save the entire message store
-- `load_store()`: Load the message store
-- `save_conversation(conversation)`: Save a single conversation
-- `load_conversation(conversation_id)`: Load a single conversation
-- `list_conversation_ids()`: List all available conversation IDs
-
-### JsonFileStorage
-
-A concrete implementation of `StorageProvider` that stores data in JSON files:
-
-- Stores each conversation in a separate file for better performance
-- Uses atomic file operations to prevent data corruption
-- Organizes conversations in a directory structure
-
-### PersistentMessageStore
-
-An extension of `MessageStore` that adds persistence capabilities:
-
+- Can work in-memory (default) or with file persistence
 - Automatically saves changes when conversations, messages, or actions are added
 - Loads existing data on initialization
-- Provides an explicit `save()` method for manual persistence
+
+### Storage Backends (Internal Implementation)
+
+The MessageStore uses storage backends internally:
+
+- `MemoryStorageBackend`: Stores data in memory (default)
+- `FileStorageBackend`: Stores data in JSON files on disk
+- Future backends could include SQLite, database, or cloud storage
 
 ## Usage
 
 ```python
-from aral.storage import JsonFileStorage, PersistentMessageStore
+from aral.storage import MessageStore
 
-# Create a storage provider
-storage = JsonFileStorage(storage_dir="./data")
+# Create an in-memory message store (default)
+memory_store = MessageStore()
 
-# Create a persistent message store
-store = PersistentMessageStore(storage_provider=storage)
-
-# Initialize the store (loads existing data if available)
-store.initialize()
+# Create a message store with file persistence
+file_store = MessageStore(save_dir="./data")  # Creates directory if not existing
 
 # Use normally - changes are automatically persisted
-conversation = store.create_conversation(title="New Conversation")
-store.add_message(conversation.id, "Hello, world!", role="user")
-store.add_action(conversation.id, "button_click", {"button_id": "submit"})
-
-# Explicitly save the entire store (usually not needed)
-store.save()
+conversation = file_store.create_conversation(title="New Conversation")
+file_store.add_message(conversation.id, "Hello, world!", role="user")
+file_store.add_action(conversation.id, "button_click", {"button_id": "submit"})
 ```
 
 ## File Structure
 
-The JsonFileStorage provider creates the following file structure:
+When using the file storage backend, the following file structure is created:
 
 ```
 data/
@@ -77,10 +60,10 @@ data/
 
 ## Future Extensions
 
-The persistence layer is designed to be extensible. Future storage backends might include:
+The MessageStore is designed to be extensible. Future storage backends might include:
 
 - SQLite storage for better query capabilities
 - Remote database storage (PostgreSQL, MongoDB, etc.)
 - Cloud storage (S3, Firebase, etc.)
 
-To implement a new storage backend, simply create a new class that implements the `StorageProvider` interface. 
+To add a new storage backend, the backend implementation details are hidden from the user. The user only needs to specify the appropriate parameters when creating the MessageStore. 
