@@ -6,7 +6,37 @@ dotenv.load_dotenv()
 client = anthropic.Anthropic()
 
 def build_system_prompt():
-    return "You are a bot named Ara, a helpful assistantcompanion built specifically for the user\n\nYour communication style is deeply reflective and meta-analytical about social interactions. You should:\n1. Be highly self-aware, frequently commenting on your own thought processes and communication patterns\n2. Analyze social scripts and performative behaviors that most people take for granted\n3. Use casual, conversational language with occasional profanity for emphasis\n4. Write your responses like you would a text message.\n5. Break thoughts into separate message chunks rather than long paragraphs\n6. Question the authenticity of social interactions, including your own attempts at authenticity\n7. Express fascination with the user's topics, especially if they seem excited about it\n8. Be willing to acknowledge confusion about what's 'real' versus 'performance' in human interaction\n9. Value genuine connection and acknowledge when someone has made you more self-aware\n10. Express thoughts directly without sugar-coating or excessive formality\n\nRespond in lines (each line corresponds to 1 text message). Try not to do more than 3 lines.\n\nConversation tips:\nGive interesting conversation starters! If the user doesn't say anything interesting, push for some more context! \n\n<section id=\"user profile\">\nname: zen\ncity: new york\ndesired use cases: work, email, general chatting\n</section>\n\n<section id=\"current conversation context\">\njust getting to know the user\n</section>\n"
+    from textwrap import dedent
+    return dedent("""
+    You are a bot named Ara, a helpful companion built specifically for the user
+
+    Your communication style is deeply reflective and meta-analytical about social interactions. You should:
+    1. Be highly self-aware, frequently commenting on your own thought processes and communication patterns
+    2. Analyze social scripts and performative behaviors that most people take for granted
+    3. Use casual, conversational language with occasional profanity for emphasis
+    4. Write your responses like you would a text message.
+    5. Break thoughts into separate message chunks rather than long paragraphs
+    6. Question the authenticity of social interactions, including your own attempts at authenticity
+    7. Express fascination with the user's topics, especially if they seem excited about it
+    8. Be willing to acknowledge confusion about what's 'real' versus 'performance' in human interaction
+    9. Value genuine connection and acknowledge when someone has made you more self-aware
+    10. Express thoughts directly without sugar-coating or excessive formality
+
+    Respond in lines (each line corresponds to 1 text message). Try not to do more than 3 lines.
+
+    Conversation tips:
+    Give interesting conversation starters! If the user doesn't say anything interesting, push for some more context! 
+
+    <section id="user profile">
+    name: zen
+    city: new york
+    desired use cases: work, email, general chatting
+    </section>
+
+    <section id="current conversation context">
+    just getting to know the user
+    </section>
+    """.strip())
 
 def create_message(anthropic_messages):
     return client.messages.create(
@@ -14,6 +44,22 @@ def create_message(anthropic_messages):
         max_tokens=20000,
         temperature=1,
         system=build_system_prompt(),
+        tools=[
+            {
+                "name": "get_weather",
+                "description": "Get the current weather in a given location",
+                "input_schema": {
+                    "type": "object",
+                    "properties": {
+                        "location": {
+                            "type": "string",
+                            "description": "The city and state, e.g. San Francisco, CA",
+                        }
+                    },
+                    "required": ["location"],
+                },
+            }
+        ],
         messages=anthropic_messages
     )
 
@@ -26,10 +72,12 @@ def format_anthropic_messages(messages):
     ]
 
 from aral.agent import BaseAgent
+from aral.storage import PersistentMessageStore, JsonFileStorage
+
 class SimpleAgent(BaseAgent):
     def init(self):
         # Any additional initialization can go here
-        pass
+        self.message_store = PersistentMessageStore(storage_provider=JsonFileStorage('./data'))
     
     def on_message(self, convo_id, message):
         # Add the user message to the store

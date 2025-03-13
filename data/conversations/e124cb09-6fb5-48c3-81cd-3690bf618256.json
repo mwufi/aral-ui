@@ -1,0 +1,40 @@
+{
+  "id": "e124cb09-6fb5-48c3-81cd-3690bf618256",
+  "title": "Example Conversation",
+  "created_at": "2025-03-13T15:11:33.447327",
+  "metadata": {},
+  "messages": [
+    {
+      "id": "3b3a1c72-1374-42a0-ad21-b87a9222f788",
+      "content": "Hello, this is a user message",
+      "role": "user",
+      "created_at": "2025-03-13T15:11:33.447902",
+      "metadata": {}
+    },
+    {
+      "id": "694eb635-0fc4-403e-84fe-73f258535c2c",
+      "content": "Hi there! I'm an assistant.",
+      "role": "assistant",
+      "created_at": "2025-03-13T15:11:33.448144",
+      "metadata": {}
+    },
+    {
+      "id": "7c75309c-f104-43ad-830d-d352fd483865",
+      "content": "Hello again! Message #3",
+      "role": "user",
+      "created_at": "2025-03-13T15:11:38.756750",
+      "metadata": {}
+    }
+  ],
+  "actions": [
+    {
+      "id": "1debad0a-0f6a-4d0e-ad17-db8f5aa0efa6",
+      "action_type": "button_click",
+      "data": {
+        "button_id": "submit"
+      },
+      "created_at": "2025-03-13T15:11:33.448364",
+      "metadata": {}
+    }
+  ]
+}
