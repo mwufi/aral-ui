@@ -4,10 +4,10 @@ import { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { v4 as uuidv4 } from "uuid";
 import { fetchConversations, sendMessage } from "@/lib/api";
-import { Avatar, AvatarImage } from "@/components/ui/avatar";
 import { Sidebar } from "@/components/ui/sidebar";
 import { MessageInput } from "@/components/ui/message-input";
 import { LoadingDots } from "@/components/ui/loading-dots";
+import { Message } from "@/components/ui/message";
 
 // Define types for our data
 interface Message {
@@ -154,8 +154,48 @@ export default function ConversationPageComponent() {
             setIsWaitingForResponse(false);
         }
     };
-
     const currentConversation = conversations.find((conv: Conversation) => conv.id === conversationId);
+
+    const parseMessageContent = (content: string) => {
+        const blocks: { type: 'text' | 'code', content: string, language?: string }[] = [];
+        const lines = content.split('\n');
+
+        let currentBlock: typeof blocks[0] | null = null;
+        let inCodeBlock = false;
+        let codeLanguage = '';
+
+        lines.forEach(line => {
+            const codeBlockMatch = line.match(/^```(\w*)$/);
+
+            if (codeBlockMatch) {
+                if (inCodeBlock) {
+                    // End code block
+                    if (currentBlock) blocks.push(currentBlock);
+                    currentBlock = null;
+                    inCodeBlock = false;
+                } else {
+                    // Start code block
+                    if (currentBlock) blocks.push(currentBlock);
+                    inCodeBlock = true;
+                    codeLanguage = codeBlockMatch[1];
+                    currentBlock = { type: 'code', content: '', language: codeLanguage };
+                }
+            } else if (inCodeBlock) {
+                // Add to current code block
+                if (currentBlock) {
+                    currentBlock.content += (currentBlock.content ? '\n' : '') + line;
+                }
+            } else {
+                // Regular text line
+                if (line.trim()) {
+                    blocks.push({ type: 'text', content: line });
+                }
+            }
+        });
+
+        if (currentBlock) blocks.push(currentBlock);
+        return blocks;
+    };
 
     return (
         <div className="flex h-full w-full">
@@ -171,12 +211,8 @@ export default function ConversationPageComponent() {
                 {/* Header */}
                 <header className="bg-white border-b border-gray-200 py-4 px-4 flex items-center">
                     <div className="flex items-center max-w-3xl mx-auto w-full">
-                        <Avatar className="h-8 w-8 bg-blue-500 mr-2">
-                            <span className="text-xs font-medium">
-                                {currentConversation?.title?.charAt(0) || "C"}
-                            </span>
-                        </Avatar>
-                        <div>
+                        <Message.Avatar role="assistant" />
+                        <div className="ml-2">
                             <h1 className="text-base font-semibold">
                                 {currentConversation?.title || "Conversation"}
                             </h1>
@@ -189,40 +225,49 @@ export default function ConversationPageComponent() {
 
                 {/* Chat area */}
                 <div className="flex-1 overflow-y-auto" ref={chatContainerRef}>
-                    <div className="max-w-3xl mx-auto w-full p-4 space-y-4">
-                        {currentConversation?.messages.map((msg: Message) => (
-                            <div
-                                key={msg.id}
-                                className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
-                            >
-                                <div className={`flex gap-2 max-w-[80%] ${msg.role === "user" ? "flex-row-reverse" : "flex-row"}`}>
-                                    <Avatar className={`h-8 w-8 shrink-0 ${msg.role === "user" ? "" : "bg-gradient-to-br from-blue-500 to-purple-500"}`}>
-                                        {msg.role === "assistant" ? (
-                                            <AvatarImage src="/favicon-platform.png" alt="Assistant" />
-                                        ) : (
-                                            <span className="text-xs font-medium text-white">A</span>
-                                        )}
-                                    </Avatar>
-                                    <div className={`rounded-2xl px-3 py-2 ${msg.role === "user"
-                                        ? "bg-blue-500 text-white"
-                                        : "bg-white/80 backdrop-blur-sm text-gray-800 shadow-sm"
-                                        }`}>
-                                        <p className="text-sm">{msg.content}</p>
-                                        <p className="text-xs opacity-70 mt-1">
-                                            {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                        </p>
+                    <div className="max-w-3xl mx-auto w-full p-4">
+                        {currentConversation?.messages.map((msg: Message) => {
+                            const messageBlocks = parseMessageContent(msg.content);
+                            const role = msg.role as "user" | "assistant";
+
+                            return (
+                                <div key={msg.id} className="mb-6">
+                                    <div className="flex gap-2">
+                                        <div className={`shrink-0 ${role === "user" ? "order-last" : "order-first"}`}>
+                                            <Message.Avatar role={role} />
+                                        </div>
+                                        <div className="flex-1">
+                                            <Message.Block role={role}>
+                                                {messageBlocks.map((block, idx) => (
+                                                    <div key={idx} className={`flex ${role === "user" ? "justify-end" : "justify-start"} w-full`}>
+                                                        {block.type === 'code' ? (
+                                                            <Message.CodeBubble
+                                                                language={block.language}
+                                                                content={block.content}
+                                                                messageId={msg.id}
+                                                                blockIdx={idx}
+                                                            />
+                                                        ) : (
+                                                            <Message.Bubble
+                                                                role={role}
+                                                                content={block.content}
+                                                            />
+                                                        )}
+                                                    </div>
+                                                ))}
+                                            </Message.Block>
+                                            <Message.Timestamp timestamp={msg.created_at} role={role} />
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        ))}
+                            );
+                        })}
 
                         {/* Loading indicator when waiting for response */}
                         {isWaitingForResponse && (
                             <div className="flex justify-start">
                                 <div className="flex gap-2 max-w-[80%]">
-                                    <Avatar className="h-8 w-8 shrink-0 bg-gradient-to-br from-blue-500 to-purple-500">
-                                        <AvatarImage src="/favicon-platform.png" alt="Assistant" />
-                                    </Avatar>
+                                    <Message.Avatar role="assistant" />
                                     <div className="rounded-2xl px-3 py-2 bg-white/80 backdrop-blur-sm text-gray-800 shadow-sm">
                                         <p className="text-sm flex items-center">
                                             <LoadingDots />
