@@ -10,11 +10,6 @@ class BaseAgent:
     def __init__(self):
         """Initialize the agent with a MessageStore."""
         self.message_store = MessageStore()
-        self.init()
-    
-    def init(self):
-        """Override this method to initialize your agent."""
-        pass
     
     def on_message(self, convo_id, message):
         """

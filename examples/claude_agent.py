@@ -1,9 +1,15 @@
 import anthropic
+import os
 
 import dotenv
 dotenv.load_dotenv()
 
-client = anthropic.Anthropic()
+# Get API key from environment variable
+api_key = os.environ.get("ANTHROPIC_API_KEY")
+if not api_key:
+    raise ValueError("ANTHROPIC_API_KEY environment variable is not set. Please set it with your Anthropic API key.")
+
+client = anthropic.Anthropic(api_key=api_key)
 
 def build_system_prompt():
     from textwrap import dedent
@@ -75,9 +81,10 @@ from aral.agent import BaseAgent
 from aral.storage import MessageStore
 
 class SimpleAgent(BaseAgent):
-    def init(self):
-        # Any additional initialization can go here
-        self.message_store = MessageStore(save_dir='./convos')  # Creates directory if not existing
+    def __init__(self):
+        super().__init__()
+        # Initialize the message store
+        self.message_store = MessageStore(save_dir='./convos')
     
     def on_message(self, convo_id, message):
         # Add the user message to the store

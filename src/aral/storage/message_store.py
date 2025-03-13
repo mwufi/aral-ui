@@ -155,8 +155,14 @@ class FileStorageBackend(StorageBackend):
     
     def save_store(self, store_data: Dict[str, Any]) -> None:
         """Save the message store index."""
+        # Ensure directories exist
+        self.save_dir.mkdir(exist_ok=True, parents=True)
+        self.conversations_dir.mkdir(exist_ok=True, parents=True)
+        
         # Create a temporary file first to avoid corruption
         temp_file = self.store_file.with_suffix('.tmp')
+        # Ensure temp file parent directory exists
+        temp_file.parent.mkdir(exist_ok=True, parents=True)
         
         # Extract conversation IDs
         conversation_ids = list(store_data.get("conversations", {}).keys())
@@ -209,8 +215,14 @@ class FileStorageBackend(StorageBackend):
     
     def save_conversation(self, conversation_id: str, conversation_data: Dict[str, Any]) -> None:
         """Save a single conversation to its own file."""
+        # Ensure directory exists
+        self.conversations_dir.mkdir(exist_ok=True, parents=True)
+        
         conv_file = self.conversations_dir / f"{conversation_id}.json"
         temp_file = conv_file.with_suffix('.tmp')
+        
+        # Ensure parent directory of temp file exists
+        temp_file.parent.mkdir(exist_ok=True, parents=True)
         
         # Write to temp file first
         with open(temp_file, 'w') as f:
@@ -224,6 +236,9 @@ class FileStorageBackend(StorageBackend):
     
     def _update_store_index(self, conversation_id: str) -> None:
         """Update the store index to include a conversation ID."""
+        # Ensure parent directory exists
+        self.save_dir.mkdir(exist_ok=True, parents=True)
+        
         if not self.store_file.exists():
             with open(self.store_file, 'w') as f:
                 json.dump({"conversation_ids": [conversation_id]}, f, indent=2)
@@ -240,6 +255,9 @@ class FileStorageBackend(StorageBackend):
                 
                 # Write back to the file
                 temp_file = self.store_file.with_suffix('.tmp')
+                # Ensure temp file parent directory exists
+                temp_file.parent.mkdir(exist_ok=True, parents=True)
+                
                 with open(temp_file, 'w') as f:
                     json.dump(store_data, f, indent=2)
                 
