@@ -6,8 +6,9 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 
 class UIServer:
-    def __init__(self, agent):
+    def __init__(self, agent, api_only=False):
         self.agent = agent
+        self.api_only = api_only
         self.app = FastAPI()
         
         # Setup CORS
@@ -20,10 +21,12 @@ class UIServer:
         )
         
         # Mount the Next.js static files - using static export
-        static_export_dir = Path(__file__).parent / "frontend" / "out"
-        if static_export_dir.exists():
-            # Mount the static export at root
-            self.app.mount("/", StaticFiles(directory=str(static_export_dir), html=True), name="static-export")
+        # Only if not in API-only mode
+        if not api_only:
+            static_export_dir = Path(__file__).parent / "frontend" / "out"
+            if static_export_dir.exists():
+                # Mount the static export at root
+                self.app.mount("/", StaticFiles(directory=str(static_export_dir), html=True), name="static-export")
         
         # API routes
         self.setup_routes()
@@ -46,15 +49,17 @@ class UIServer:
                 return JSONResponse(content={"conversations": conversations})
             return JSONResponse(content={"conversations": []})
         
-        @self.app.get("/{full_path:path}")
-        async def serve_frontend(full_path: str):
-            # Only reached if the static files mount doesn't handle the request
-            static_export_dir = Path(__file__).parent / "frontend" / "out"
-            if not static_export_dir.exists():
-                return HTMLResponse(content="UI not built. Run 'cd src/aral/ui/frontend && bun run build' to build the UI.")
-            
-            # If we get here, the path wasn't found in the static export
-            return HTMLResponse(content="Page not found", status_code=404)
+        # Only add the catch-all route if not in API-only mode
+        if not self.api_only:
+            @self.app.get("/{full_path:path}")
+            async def serve_frontend(full_path: str):
+                # Only reached if the static files mount doesn't handle the request
+                static_export_dir = Path(__file__).parent / "frontend" / "out"
+                if not static_export_dir.exists():
+                    return HTMLResponse(content="UI not built. Run 'cd src/aral/ui/frontend && bun run build' to build the UI.")
+                
+                # If we get here, the path wasn't found in the static export
+                return HTMLResponse(content="Page not found", status_code=404)
     
     def run(self, host="0.0.0.0", port=3000):
         import uvicorn
