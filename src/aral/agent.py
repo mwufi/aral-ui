@@ -1,4 +1,5 @@
 import os
+import time
 from pathlib import Path
 from .ui.server import UIServer
 from .ui.build import build_frontend
@@ -50,6 +51,7 @@ class BaseAgent:
         """
         Send an update to the frontend via WebSocket.
         Used to notify the UI of tool usage, processing steps, or other updates.
+        Also stores the update in the message store for persistence.
         
         Args:
             conversation_id: The conversation ID this update relates to
@@ -70,12 +72,49 @@ class BaseAgent:
                 'result': {'temperature': 72, 'conditions': 'Sunny'}
             })
         """
+        # Make sure update_data has an ID field for tracking
+        if 'id' not in update_data:
+            update_data['id'] = str(uuid.uuid4())
+        
+        # Add timestamp if not present
+        if 'timestamp' not in update_data:
+            update_data['timestamp'] = time.time()
+            
+        # Add the conversation ID
+        update_data['conversation_id'] = conversation_id
+        
+        # Add related message info if not present
+        # This helps associate tool updates with specific assistant messages
+        if 'related_message_id' not in update_data:
+            # Get the latest assistant message ID if available
+            try:
+                conversation = self.message_store.get_conversation(conversation_id)
+                assistant_messages = [msg for msg in conversation.messages if msg.role == "assistant"]
+                if assistant_messages:
+                    # Associate with the most recent assistant message
+                    update_data['related_message_id'] = assistant_messages[-1].id
+            except Exception as e:
+                if self.verbose:
+                    print(f"Error getting related message ID: {e}")
+        
+        # Store the update in the message store for persistence
+        # Use the update type as the action_type
+        self.message_store.add_action(
+            conversation_id=conversation_id,
+            action_type=update_data.get('type', 'tool_update'),
+            data=update_data
+        )
+            
+        # Print debug info
+        if self.verbose:
+            print(f"Sending tool update: {update_data.get('type')} for conversation {conversation_id}")
+            if 'tool' in update_data:
+                print(f"Tool: {update_data['tool']}")
+            if 'id' in update_data:
+                print(f"Update ID: {update_data['id']}")
+        
+        # Send the update to the UI server if available
         if self.ui_server:
-            # Make sure update_data has an ID field for tracking
-            if 'id' not in update_data:
-                update_data['id'] = str(uuid.uuid4())
-                
-            # Send the update to the UI server
             self.ui_server.send_update(conversation_id, update_data)
         elif self.verbose:
             print(f"No UI server available to send update: {update_data}")
@@ -125,8 +164,36 @@ class BaseAgent:
         # Call the handler method for custom processing
         response = self._handle_message(convo_id, message)
         
-        # Add the assistant response to the store
-        self.message_store.add_message(convo_id, response, role="assistant")
+        # Check if response is a dictionary-like API response with content blocks
+        if isinstance(response, dict) and 'content' in response and isinstance(response['content'], list):
+            # This is a Claude API response with potential tool_use blocks
+            content_blocks = response['content']
+            
+            # Extract text content
+            text_content = ""
+            for block in content_blocks:
+                if block.get('type') == 'text':
+                    text_content += block.get('text', '')
+            
+            # Send tool updates for any tool_use blocks
+            for block in content_blocks:
+                if block.get('type') == 'tool_use':
+                    tool_use_data = {
+                        'type': 'tool_start',
+                        'tool': block.get('name'),
+                        'args': block.get('input', {}),
+                        'tool_use_id': block.get('id')
+                    }
+                    self.send_update(convo_id, tool_use_data)
+            
+            # Store the full content blocks as the message content
+            self.message_store.add_message(convo_id, content_blocks, role="assistant")
+            
+            # Return just the text portion for backwards compatibility
+            response = text_content
+        else:
+            # Regular string response, store as is
+            self.message_store.add_message(convo_id, response, role="assistant")
         
         if self.verbose:
             print(f"Response: {response[:50]}{'...' if len(response) > 50 else ''}")
@@ -156,6 +223,15 @@ class BaseAgent:
                         "created_at": msg.created_at.isoformat(),
                     }
                     for msg in conv.messages
+                ],
+                "actions": [
+                    {
+                        "id": action.id,
+                        "action_type": action.action_type,
+                        "data": action.data,
+                        "created_at": action.created_at.isoformat(),
+                    }
+                    for action in conv.actions
                 ]
             }
             for conv in conversations

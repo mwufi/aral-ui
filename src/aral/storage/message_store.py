@@ -12,7 +12,7 @@ class Message(BaseModel):
     """A message in a conversation."""
     
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    content: str
+    content: Union[str, List[Dict[str, Any]]]
     role: str = "user"
     created_at: datetime = Field(default_factory=datetime.now)
     metadata: Dict[str, Any] = Field(default_factory=dict)

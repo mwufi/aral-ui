@@ -1,12 +1,11 @@
 "use client";
-
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { v4 as uuidv4 } from "uuid";
 import { fetchConversations, sendMessage } from "@/lib/api";
 import { Sidebar } from "@/components/ui/sidebar";
 import { MessageInput } from "@/components/ui/message-input";
-import { LoadingDots } from "@/components/ui/loading-dots";
+import { ConversationFlow } from "@/components/ui/conversation-flow";
 import { Message } from "@/components/ui/message";
 import { ToolUpdates } from "@/components/ui/tool-updates";
 import { useLiveUpdates } from "@/lib/websocket-context";
@@ -23,14 +22,13 @@ interface Conversation {
     id: string;
     title: string;
     messages: Message[];
+    actions?: any[];
 }
 
 export default function ConversationPageComponent() {
     const params = useParams();
     const router = useRouter();
     const conversationId = params.id as string;
-    const messagesEndRef = useRef<HTMLDivElement>(null);
-    const chatContainerRef = useRef<HTMLDivElement>(null);
 
     const [conversations, setConversations] = useState<Conversation[]>([]);
     const [inputValue, setInputValue] = useState<string>("");
@@ -66,33 +64,45 @@ export default function ConversationPageComponent() {
         }
     }, [conversationId, router]);
     
+    // Find the current conversation
+    const currentConversation = conversations.find((conv: Conversation) => conv.id === conversationId);
+    
     // Use the live updates hook for this conversation
-    const { updates: toolUpdates, isConnected } = useLiveUpdates(conversationId);
-
-    // Handle scrolling behavior
+    const { updates: toolUpdates, isConnected, setInitialUpdates } = useLiveUpdates(conversationId);
+    
+    // Process stored actions into tool updates when conversation changes
     useEffect(() => {
-        // On initial load, scroll to bottom immediately without animation
-        if (initialLoadComplete && chatContainerRef.current && conversations.length > 0) {
-            const container = chatContainerRef.current;
-            container.scrollTop = container.scrollHeight;
-        }
-    }, [initialLoadComplete, conversations]);
-
-    // Handle smooth scrolling for new messages after user sends a message
-    const scrollToBottom = (smooth = true) => {
-        if (messagesEndRef.current) {
-            messagesEndRef.current.scrollIntoView({
-                behavior: smooth ? "smooth" : "auto"
+        if (currentConversation?.actions && Array.isArray(currentConversation.actions)) {
+            console.log('Found stored actions:', currentConversation.actions.length);
+            
+            // Filter for tool update actions
+            const toolUpdates = currentConversation.actions
+                .filter(action => 
+                    action.action_type === 'tool_start' || 
+                    action.action_type === 'progress_update' || 
+                    action.action_type === 'tool_result'
+                )
+                .map(action => action.data);
+            
+            // Group updates by their ID
+            const groupedUpdates: Record<string, any[]> = {};
+            toolUpdates.forEach(update => {
+                if (update && update.id) {
+                    if (!groupedUpdates[update.id]) {
+                        groupedUpdates[update.id] = [];
+                    }
+                    groupedUpdates[update.id].push(update);
+                }
             });
+            
+            // Initialize the tool updates in the context
+            if (setInitialUpdates && Object.keys(groupedUpdates).length > 0) {
+                console.log('Setting initial tool updates:', Object.keys(groupedUpdates).length);
+                setInitialUpdates(groupedUpdates);
+            }
         }
-    };
+    }, [currentConversation, setInitialUpdates]);
 
-    // When conversations update and we're already at the initial load, scroll smoothly
-    useEffect(() => {
-        if (initialLoadComplete && conversations.length > 0) {
-            scrollToBottom(true);
-        }
-    }, [conversations.length, initialLoadComplete]);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setInputValue(e.target.value);
@@ -137,9 +147,6 @@ export default function ConversationPageComponent() {
 
             setConversations(updatedConversations);
 
-            // Scroll to bottom after adding the message
-            setTimeout(() => scrollToBottom(true), 50);
-
             // Show loading indicator for this specific message
             setIsWaitingForResponse(true);
 
@@ -149,9 +156,6 @@ export default function ConversationPageComponent() {
             // Refresh conversations to get the assistant's response
             const data = await fetchConversations();
             setConversations(data.conversations || []);
-
-            // Scroll to bottom after receiving the response
-            setTimeout(() => scrollToBottom(true), 50);
         } catch (err) {
             console.error("Error sending message:", err);
             setError("Failed to send message. Please try again.");
@@ -159,7 +163,6 @@ export default function ConversationPageComponent() {
             setIsWaitingForResponse(false);
         }
     };
-    const currentConversation = conversations.find((conv: Conversation) => conv.id === conversationId);
 
     const parseMessageContent = (content: string) => {
         const blocks: { type: 'text' | 'code', content: string, language?: string }[] = [];
@@ -229,64 +232,13 @@ export default function ConversationPageComponent() {
                 </header>
 
                 {/* Chat area */}
-                <div className="flex-1 overflow-y-auto" ref={chatContainerRef}>
-                    <div className="max-w-3xl mx-auto w-full p-4">
-                        {currentConversation?.messages.map((msg: Message) => {
-                            const messageBlocks = parseMessageContent(msg.content);
-                            const role = msg.role as "user" | "assistant";
-
-                            return (
-                                <div key={msg.id} className="mb-6">
-                                    <div className="flex gap-2">
-                                        <div className={`shrink-0 ${role === "user" ? "order-last" : "order-first"}`}>
-                                            <Message.Avatar role={role} />
-                                        </div>
-                                        <div className="flex-1">
-                                            <Message.Block role={role}>
-                                                {messageBlocks.map((block, idx) => (
-                                                    <div key={idx} className={`flex ${role === "user" ? "justify-end" : "justify-start"} w-full`}>
-                                                        {block.type === 'code' ? (
-                                                            <Message.CodeBubble
-                                                                language={block.language}
-                                                                content={block.content}
-                                                                messageId={msg.id}
-                                                                blockIdx={idx}
-                                                            />
-                                                        ) : (
-                                                            <Message.Bubble
-                                                                role={role}
-                                                                content={block.content}
-                                                            />
-                                                        )}
-                                                    </div>
-                                                ))}
-                                            </Message.Block>
-                                            <Message.Timestamp timestamp={msg.created_at} role={role} />
-                                        </div>
-                                    </div>
-                                </div>
-                            );
-                        })}
-
-                        {/* Tool updates from WebSocket */}
-                        <ToolUpdates conversationId={conversationId} />
-                        
-                        {/* Loading indicator when waiting for response */}
-                        {isWaitingForResponse && (
-                            <div className="flex justify-start">
-                                <div className="flex gap-2 max-w-[80%]">
-                                    <Message.Avatar role="assistant" />
-                                    <div className="rounded-2xl px-3 py-2 bg-white/80 backdrop-blur-sm text-gray-800 shadow-sm">
-                                        <p className="text-sm flex items-center">
-                                            <LoadingDots />
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-
-                        <div ref={messagesEndRef} />
-                    </div>
+                <div className="flex-1 flex flex-col">
+                    <ConversationFlow 
+                        conversationId={conversationId}
+                        messages={currentConversation?.messages || []}
+                        isWaitingForResponse={isWaitingForResponse}
+                        parseMessageContent={parseMessageContent}
+                    />
                 </div>
 
                 {/* Input area */}

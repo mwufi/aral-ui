@@ -47,7 +47,17 @@ class ToolUpdatesAgent(BaseAgent):
         
         # Check if message asks for calculation
         if "calculate" in message_lower or "math" in message_lower:
-            expression = "256 * 14 + 42"
+            # If the message contains an actual expression, try to extract it
+            import re
+            expression_match = re.search(r'\b(\d+\s*[\+\-\*\/]\s*\d+(?:\s*[\+\-\*\/]\s*\d+)*)\b', message)
+            
+            if expression_match:
+                expression = expression_match.group(1).strip()
+            else:
+                # Default example expression
+                expression = "256 * 14 + 42"
+                
+            # Send update that we're calculating
             tool_result = self.use_tool(convo_id, "calculator", {"expression": expression})
             response_parts.append(f"The result of {expression} is {tool_result['result']}.")
         

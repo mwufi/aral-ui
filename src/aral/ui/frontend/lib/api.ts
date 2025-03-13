@@ -38,6 +38,9 @@ export type ToolUpdate = {
   tool?: string;
   args?: any;
   result?: any;
+  tool_use_id?: string;    // ID of the original tool_use block
+  related_tool_use_id?: string; // For tracking related updates
+  related_message_id?: string;  // For relating to specific messages
   [key: string]: any;
 };
 
