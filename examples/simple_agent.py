@@ -34,6 +34,7 @@ class SimpleAgent(BaseAgent):
         # Return just the response text instead of the entire ChatCompletion object
         return response_text
 
+
 if __name__ == "__main__":
     import argparse
     

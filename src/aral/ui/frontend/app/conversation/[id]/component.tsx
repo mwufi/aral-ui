@@ -7,6 +7,7 @@ import { fetchConversations, sendMessage } from "@/lib/api";
 import { Avatar, AvatarImage } from "@/components/ui/avatar";
 import { Sidebar } from "@/components/ui/sidebar";
 import { MessageInput } from "@/components/ui/message-input";
+import { LoadingDots } from "@/components/ui/loading-dots";
 
 // Define types for our data
 interface Message {
@@ -34,6 +35,7 @@ export default function ConversationPageComponent() {
     const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
     const [initialLoadComplete, setInitialLoadComplete] = useState<boolean>(false);
+    const [isWaitingForResponse, setIsWaitingForResponse] = useState<boolean>(false);
 
     // Fetch conversations
     useEffect(() => {
@@ -98,14 +100,21 @@ export default function ConversationPageComponent() {
             return;
         }
 
+        // Store the message content before clearing the input
+        const messageContent = inputValue;
+
+        // Clear the input immediately to allow the MessageInput component to refocus
+        setInputValue("");
+
         try {
-            setIsSubmitting(true);
+            // Only set isSubmitting for the current message, not for the entire UI
+            // This allows sending new messages while waiting for a response
             setError(null);
 
             // Add user message to UI immediately
             const userMessage: Message = {
                 id: uuidv4(),
-                content: inputValue,
+                content: messageContent,
                 role: "user",
                 created_at: new Date().toISOString(),
             };
@@ -126,11 +135,11 @@ export default function ConversationPageComponent() {
             // Scroll to bottom after adding the message
             setTimeout(() => scrollToBottom(true), 50);
 
-            // Send the message to the API
-            await sendMessage(conversationId, inputValue);
+            // Show loading indicator for this specific message
+            setIsWaitingForResponse(true);
 
-            // Clear the input
-            setInputValue("");
+            // Send the message to the API
+            await sendMessage(conversationId, messageContent);
 
             // Refresh conversations to get the assistant's response
             const data = await fetchConversations();
@@ -142,7 +151,7 @@ export default function ConversationPageComponent() {
             console.error("Error sending message:", err);
             setError("Failed to send message. Please try again.");
         } finally {
-            setIsSubmitting(false);
+            setIsWaitingForResponse(false);
         }
     };
 
@@ -206,6 +215,23 @@ export default function ConversationPageComponent() {
                                 </div>
                             </div>
                         ))}
+
+                        {/* Loading indicator when waiting for response */}
+                        {isWaitingForResponse && (
+                            <div className="flex justify-start">
+                                <div className="flex gap-2 max-w-[80%]">
+                                    <Avatar className="h-8 w-8 shrink-0 bg-gradient-to-br from-blue-500 to-purple-500">
+                                        <AvatarImage src="/favicon-platform.png" alt="Assistant" />
+                                    </Avatar>
+                                    <div className="rounded-2xl px-3 py-2 bg-white/80 backdrop-blur-sm text-gray-800 shadow-sm">
+                                        <p className="text-sm flex items-center">
+                                            <LoadingDots />
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
                         <div ref={messagesEndRef} />
                     </div>
                 </div>
@@ -217,7 +243,7 @@ export default function ConversationPageComponent() {
                             value={inputValue}
                             onChange={handleInputChange}
                             onSubmit={handleSubmit}
-                            isSubmitting={isSubmitting}
+                            isSubmitting={false} // Never disable the input
                             autoFocus={true}
                         />
                     </div>

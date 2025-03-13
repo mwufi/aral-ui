@@ -72,9 +72,19 @@ class UIServer:
                     status_code=400,
                     content={"error": "conversation_id and message are required"}
                 )
-            
-            response = self.agent.on_message(conversation_id, message)
-            return JSONResponse(content={"response": response})
+            try:
+                response = self.agent.on_message(conversation_id, message)
+                return JSONResponse(content={"response": response})
+            except Exception as e:
+                # Log the error
+                print(f"Error handling message: {str(e)}")
+                return JSONResponse(
+                    status_code=500,
+                    content={
+                        "error": "Failed to process message",
+                        "detail": str(e)
+                    }
+                )
         
         @self.app.get("/api/conversations")
         async def get_conversations():

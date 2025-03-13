@@ -1,4 +1,4 @@
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -22,28 +22,45 @@ export function MessageInput({
     autoFocus = false
 }: MessageInputProps) {
     const inputRef = useRef<HTMLInputElement>(null);
+    const [localSubmitting, setLocalSubmitting] = useState(false);
 
-    // Focus input on initial render and when value changes to empty (after submit)
+    // Focus input on initial render
     useEffect(() => {
         if (autoFocus && inputRef.current) {
-            // Focus on initial render or when value becomes empty
-            if (value === "") {
-                inputRef.current.focus();
-            }
+            inputRef.current.focus();
         }
-    }, [autoFocus, value]);
+    }, [autoFocus]);
+
+    // Focus input when value changes to empty (after submit)
+    useEffect(() => {
+        if (value === "" && inputRef.current) {
+            inputRef.current.focus();
+        }
+    }, [value]);
 
     const handleFormSubmit = (e: React.FormEvent) => {
         e.preventDefault(); // Prevent default form submission behavior
+
+        if (value.trim() === "") {
+            return; // Don't submit empty messages
+        }
+
+        // Set local submitting state to briefly disable the button
+        // This prevents accidental double-submissions
+        setLocalSubmitting(true);
+
+        // Call the parent's onSubmit handler
         onSubmit(e);
 
-        // Focus the input after submission with a small delay to ensure
-        // any state updates have completed
+        // Reset local submitting state after a short delay
         setTimeout(() => {
+            setLocalSubmitting(false);
+
+            // Focus the input after submission
             if (inputRef.current) {
                 inputRef.current.focus();
             }
-        }, 100); // Slightly longer timeout to ensure state updates complete
+        }, 300);
     };
 
     return (
@@ -54,14 +71,14 @@ export function MessageInput({
                 onChange={onChange}
                 placeholder={placeholder}
                 className="flex-1 rounded-full border-gray-200 bg-white/80 backdrop-blur-sm"
-                disabled={isSubmitting}
+                disabled={isSubmitting} // Use the parent's isSubmitting prop
             />
             <Button
                 type="submit"
-                disabled={isSubmitting || value.trim() === ""} // Disable when empty or submitting
+                disabled={localSubmitting || isSubmitting || value.trim() === ""} // Disable when empty or submitting
                 className="rounded-full bg-blue-500 hover:bg-blue-600 text-white"
             >
-                {isSubmitting ? "..." : submitLabel}
+                {localSubmitting ? "..." : submitLabel}
             </Button>
         </form>
     );
