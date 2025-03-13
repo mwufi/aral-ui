@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { v4 as uuidv4 } from "uuid";
 import { fetchConversations, sendMessage } from "@/lib/api";
-import { Avatar } from "@/components/ui/avatar";
+import { Avatar, AvatarImage } from "@/components/ui/avatar";
 import { Sidebar } from "@/components/ui/sidebar";
 import { MessageInput } from "@/components/ui/message-input";
 
@@ -187,10 +187,12 @@ export default function ConversationPageComponent() {
                                 className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
                             >
                                 <div className={`flex gap-2 max-w-[80%] ${msg.role === "user" ? "flex-row-reverse" : "flex-row"}`}>
-                                    <Avatar className={`h-8 w-8 shrink-0 ${msg.role === "user" ? "bg-blue-500" : "bg-gray-300"}`}>
-                                        <span className="text-xs font-medium">
-                                            {msg.role === "user" ? "Me" : "A"}
-                                        </span>
+                                    <Avatar className={`h-8 w-8 shrink-0 ${msg.role === "user" ? "" : "bg-gradient-to-br from-blue-500 to-purple-500"}`}>
+                                        {msg.role === "assistant" ? (
+                                            <AvatarImage src="/favicon-platform.png" alt="Assistant" />
+                                        ) : (
+                                            <span className="text-xs font-medium text-white">A</span>
+                                        )}
                                     </Avatar>
                                     <div className={`rounded-2xl px-3 py-2 ${msg.role === "user"
                                         ? "bg-blue-500 text-white"
