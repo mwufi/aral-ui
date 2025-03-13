@@ -139,6 +139,14 @@ class FileStorageBackend(StorageBackend):
     """File-based storage backend."""
     
     def __init__(self, save_dir: str):
+        # Convert relative paths to absolute paths based on the current working directory
+        # This ensures that even if the working directory changes later, we'll still use
+        # the correct directory relative to where the user ran the command
+        if not os.path.isabs(save_dir):
+            # Get absolute path while preserving original working directory
+            save_dir = os.path.abspath(save_dir)
+            print(f"Converting relative save_dir to absolute path: {save_dir}")
+        
         self.save_dir = Path(save_dir)
         self.store_file = self.save_dir / "message_store.json"
         self.conversations_dir = self.save_dir / "conversations"

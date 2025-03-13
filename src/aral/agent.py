@@ -7,13 +7,44 @@ import subprocess
 import threading
 
 class BaseAgent:
-    def __init__(self):
-        """Initialize the agent with a MessageStore."""
-        self.message_store = MessageStore()
-    
-    def on_message(self, convo_id, message):
+    def __init__(self, message_store=None, save_dir=None, verbose=False):
+        """Initialize the agent with a MessageStore.
+        
+        Args:
+            message_store: Optional custom MessageStore instance
+            save_dir: Directory where conversations should be saved
+            verbose: Whether to print diagnostic information
         """
-        Handle an incoming message.
+        self.verbose = verbose
+        self.initial_cwd = os.getcwd()  # Store the initial working directory
+        
+        # Initialize message store
+        if message_store:
+            self.message_store = message_store
+        elif save_dir:
+            self.message_store = MessageStore(save_dir=save_dir)
+        else:
+            self.message_store = MessageStore()
+            
+        if self.verbose:
+            print(f"Initializing agent with MessageStore {'with persistence' if save_dir else 'in memory only'}")
+            print(f"Initial working directory: {self.initial_cwd}")
+            
+            if hasattr(self.message_store, 'backend') and hasattr(self.message_store.backend, 'list_conversation_ids'):
+                conversation_ids = self.message_store.backend.list_conversation_ids()
+                print(f"Found existing conversations: {conversation_ids}")
+                
+        # Call the init method for any additional initialization
+        self.init()
+    
+    def init(self):
+        """Override this method to initialize your agent."""
+        pass
+    
+    def _handle_message(self, convo_id, message):
+        """
+        Internal method that handles the actual message processing.
+        Override this in your subclass instead of on_message.
         
         Args:
             convo_id: The conversation ID
@@ -22,14 +53,47 @@ class BaseAgent:
         Returns:
             The response message content
         """
+        # Default implementation just echoes the message
+        return f"Echo: {message}"
+    
+    def on_message(self, convo_id, message):
+        """
+        Handle an incoming message. This method:
+        1. Logs the incoming message if verbose mode is on
+        2. Adds the user message to the store
+        3. Calls the _handle_message method for custom processing
+        4. Adds the response to the store
+        5. Returns the response
+        
+        Do NOT override this method in your subclass.
+        Override _handle_message instead.
+        
+        Args:
+            convo_id: The conversation ID
+            message: The message content
+            
+        Returns:
+            The response message content
+        """
+        if self.verbose:
+            print(f"\n==== Received message in conversation {convo_id} ====")
+            print(f"Message: {message}")
+            print(f"Current working directory: {os.getcwd()}")
+        
         # Add the user message to the store
         self.message_store.add_message(convo_id, message, role="user")
         
-        # Default implementation just echoes the message
-        response = f"Echo: {message}"
+        # Call the handler method for custom processing
+        response = self._handle_message(convo_id, message)
         
         # Add the assistant response to the store
         self.message_store.add_message(convo_id, response, role="assistant")
+        
+        if self.verbose:
+            print(f"Response: {response[:50]}{'...' if len(response) > 50 else ''}")
+            if hasattr(self.message_store, 'backend') and hasattr(self.message_store.backend, 'list_conversation_ids'):
+                conversation_ids = self.message_store.backend.list_conversation_ids()
+                print(f"Active conversations: {conversation_ids}")
         
         return response
     

@@ -82,26 +82,20 @@ from aral.storage import MessageStore
 
 class SimpleAgent(BaseAgent):
     def __init__(self):
-        super().__init__()
-        # Initialize the message store
-        self.message_store = MessageStore(save_dir='./convos')
+        # Initialize with a persistent store in the convos directory
+        # Simple and clean!
+        super().__init__(save_dir='./convos', verbose=True)
     
-    def on_message(self, convo_id, message):
-        # Add the user message to the store
-        self.message_store.add_message(convo_id, message, role="user")
-        
-        # Generate a response using OpenAI if available, otherwise use a simple echo
+    def _handle_message(self, convo_id, message):
+        """Process the message and generate a response using Anthropic."""
+        # Get conversation history
         anthropic_messages = format_anthropic_messages(self.message_store.get_conversation(convo_id).messages)
+        
+        # Send to Anthropic
         response = create_message(anthropic_messages)
-        # Extract the actual message content from the ChatCompletion response
-        response_text = response.content[0].text
-
-        # Add the assistant response to the store and return it
-        self.message_store.add_message(convo_id, response_text, role="assistant")
-
-        print(self.message_store.get_conversation(convo_id))
-        # Return just the response text instead of the entire ChatCompletion object
-        return response_text
+        
+        # Extract just the text content
+        return response.content[0].text
 
 if __name__ == "__main__":
     agent = SimpleAgent()
