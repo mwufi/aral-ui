@@ -8,6 +8,8 @@ import { Sidebar } from "@/components/ui/sidebar";
 import { MessageInput } from "@/components/ui/message-input";
 import { LoadingDots } from "@/components/ui/loading-dots";
 import { Message } from "@/components/ui/message";
+import { ToolUpdates } from "@/components/ui/tool-updates";
+import { useLiveUpdates } from "@/lib/websocket-context";
 
 // Define types for our data
 interface Message {
@@ -63,6 +65,9 @@ export default function ConversationPageComponent() {
             getConversations();
         }
     }, [conversationId, router]);
+    
+    // Use the live updates hook for this conversation
+    const { updates: toolUpdates, isConnected } = useLiveUpdates(conversationId);
 
     // Handle scrolling behavior
     useEffect(() => {
@@ -263,6 +268,9 @@ export default function ConversationPageComponent() {
                             );
                         })}
 
+                        {/* Tool updates from WebSocket */}
+                        <ToolUpdates conversationId={conversationId} />
+                        
                         {/* Loading indicator when waiting for response */}
                         {isWaitingForResponse && (
                             <div className="flex justify-start">

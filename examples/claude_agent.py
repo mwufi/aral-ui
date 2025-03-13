@@ -79,6 +79,9 @@ def format_anthropic_messages(messages):
 
 from aral.agent import BaseAgent
 from aral.storage import MessageStore
+import time
+import random
+import json
 
 class SimpleAgent(BaseAgent):
     def __init__(self):
@@ -88,15 +91,125 @@ class SimpleAgent(BaseAgent):
     
     def _handle_message(self, convo_id, message):
         """Process the message and generate a response using Anthropic."""
+        # Check if the message is asking for weather
+        if "weather" in message.lower():
+            return self.handle_weather_request(convo_id, message)
+            
         # Get conversation history
         anthropic_messages = format_anthropic_messages(self.message_store.get_conversation(convo_id).messages)
+        
+        # Send tool usage update
+        tool_id = f"claude-{time.time()}"
+        self.send_update(convo_id, {
+            "id": tool_id,
+            "type": "tool_start",
+            "tool": "anthropic",
+            "args": {
+                "model": "claude-3-7-sonnet",
+                "messages": len(anthropic_messages)
+            }
+        })
+        
+        start_time = time.time()
         
         # Send to Anthropic
         response = create_message(anthropic_messages)
         
+        # Send completion update
+        elapsed_time = time.time() - start_time
+        self.send_update(convo_id, {
+            "id": tool_id,
+            "type": "tool_result",
+            "tool": "anthropic",
+            "result": {
+                "time_taken": f"{elapsed_time:.2f}s",
+                "tokens": response.usage.output_tokens + response.usage.input_tokens
+            }
+        })
+        
+        # Check if there's a tool call
+        if response.tool_calls and len(response.tool_calls) > 0:
+            # Handle tool calls from Claude
+            for tool_call in response.tool_calls:
+                if tool_call.name == "get_weather":
+                    location = tool_call.input.get("location", "Unknown location")
+                    weather_data = self.get_weather(convo_id, location)
+                    # You would normally send this back to Claude, but for this example
+                    # we'll just include it in the response
+                    weather_text = f"\n\nI checked the weather for you: {weather_data['temperature']}°F and {weather_data['conditions']} in {location}."
+                    return response.content[0].text + weather_text
+        
         # Extract just the text content
         return response.content[0].text
+    
+    def handle_weather_request(self, convo_id, message):
+        """Handle direct weather requests from the user."""
+        # Extract location from message or default to New York
+        import re
+        location_match = re.search(r"weather\s+(?:in|at|for)?\s+([a-zA-Z\s,]+)", message, re.IGNORECASE)
+        location = location_match.group(1).strip() if location_match else "New York"
+        
+        # Get weather data
+        weather_data = self.get_weather(convo_id, location)
+        
+        # Return formatted response
+        return f"The weather in {location} is currently {weather_data['temperature']}°F and {weather_data['conditions']} with {weather_data['humidity']}% humidity and wind at {weather_data['wind']}."
+    
+    def get_weather(self, convo_id, location):
+        """Simulated weather tool that sends UI updates."""
+        # Send weather tool start update
+        tool_id = f"weather-{time.time()}"
+        self.send_update(convo_id, {
+            "id": tool_id,
+            "type": "tool_start",
+            "tool": "weather",
+            "args": {"location": location}
+        })
+        
+        # Simulate API call delay
+        time.sleep(1.5)
+        
+        # Generate mock weather data
+        weather_data = {
+            "location": location,
+            "temperature": random.randint(65, 85),
+            "conditions": random.choice(["Sunny", "Cloudy", "Partly Cloudy", "Rainy"]),
+            "humidity": random.randint(30, 90),
+            "wind": f"{random.randint(0, 20)} mph"
+        }
+        
+        # Send weather tool result update
+        self.send_update(convo_id, {
+            "id": tool_id,
+            "type": "tool_result",
+            "tool": "weather",
+            "result": weather_data
+        })
+        
+        return weather_data
 
 if __name__ == "__main__":
+    import argparse
+    
+    parser = argparse.ArgumentParser(description="Run the Claude Agent")
+    parser.add_argument("--dev", action="store_true", help="Run in development mode with hot reloading")
+    parser.add_argument("--port", type=int, default=3000, help="Port for the main server")
+    parser.add_argument("--api-port", type=int, default=4000, help="Port for the API server (only used in dev mode)")
+    parser.add_argument("--verbose", action="store_true", help="Enable verbose output")
+    args = parser.parse_args()
+    
+    # This fixes the issue with running from a different directory
+    import os
+    # Ensure we're in the right directory for loading files
+    os.chdir(os.path.dirname(os.path.abspath(__file__)))
+    
     agent = SimpleAgent()
-    agent.run(dev_mode=True, api_port=4000, port=3000)
+    
+    if args.dev:
+        # Run in development mode with separate API and UI servers
+        print(f"Running in development mode with UI on port {args.port} and API on port {args.api_port}")
+        agent.run(port=args.port, api_port=args.api_port, dev_mode=True)
+    else:
+        # Run in production mode with a single server
+        print(f"Running in production mode on port {args.port}")
+        agent.run(port=args.port)

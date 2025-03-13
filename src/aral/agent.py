@@ -5,6 +5,8 @@ from .ui.build import build_frontend
 from .storage import MessageStore
 import subprocess
 import threading
+import uuid
+from typing import Dict, Any, Optional
 
 class BaseAgent:
     def __init__(self, message_store=None, save_dir=None, verbose=False):
@@ -17,6 +19,9 @@ class BaseAgent:
         """
         self.verbose = verbose
         self.initial_cwd = os.getcwd()  # Store the initial working directory
+
+        # Will be set by the UI server
+        self.ui_server = None
         
         # Initialize message store
         if message_store:
@@ -40,6 +45,40 @@ class BaseAgent:
     def init(self):
         """Override this method to initialize your agent."""
         pass
+    
+    def send_update(self, conversation_id: str, update_data: Dict[str, Any]):
+        """
+        Send an update to the frontend via WebSocket.
+        Used to notify the UI of tool usage, processing steps, or other updates.
+        
+        Args:
+            conversation_id: The conversation ID this update relates to
+            update_data: A dictionary with update information. Should have a 'type' field
+                         to indicate the kind of update (e.g., 'tool_start', 'tool_result').
+        
+        Example:
+            self.send_update(convo_id, {
+                'type': 'tool_start',
+                'tool': 'weather_api',
+                'args': {'location': 'San Francisco'}
+            })
+            
+            # Later, after tool completes:
+            self.send_update(convo_id, {
+                'type': 'tool_result',
+                'tool': 'weather_api',
+                'result': {'temperature': 72, 'conditions': 'Sunny'}
+            })
+        """
+        if self.ui_server:
+            # Make sure update_data has an ID field for tracking
+            if 'id' not in update_data:
+                update_data['id'] = str(uuid.uuid4())
+                
+            # Send the update to the UI server
+            self.ui_server.send_update(conversation_id, update_data)
+        elif self.verbose:
+            print(f"No UI server available to send update: {update_data}")
     
     def _handle_message(self, convo_id, message):
         """
