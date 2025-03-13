@@ -1,103 +1,205 @@
-import Image from "next/image";
+"use client";
+
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { v4 as uuidv4 } from "uuid";
+import { fetchConversations, sendMessage } from "@/lib/api";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Avatar } from "@/components/ui/avatar";
+
+// Define types for our data
+interface Message {
+  id: string;
+  content: string;
+  role: string;
+  created_at: string;
+}
+
+interface Conversation {
+  id: string;
+  title: string;
+  messages: Message[];
+}
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            GYou are a sdf{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const router = useRouter();
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [inputValue, setInputValue] = useState<string>("");
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+  // Fetch conversations
+  useEffect(() => {
+    const getConversations = async () => {
+      try {
+        setError(null);
+        const data = await fetchConversations();
+        setConversations(data.conversations || []);
+      } catch (err) {
+        console.error("Error fetching conversations:", err);
+        setError("Failed to load conversations. Please try again.");
+      }
+    };
+
+    getConversations();
+  }, []);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setInputValue(e.target.value);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!inputValue.trim()) {
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      setError(null);
+
+      // Create a new conversation ID
+      const newConversationId = uuidv4();
+
+      // Send the message to the API
+      await sendMessage(newConversationId, inputValue);
+
+      // Redirect to the conversation page
+      router.push(`/conversation/${newConversationId}`);
+    } catch (err) {
+      console.error("Error starting conversation:", err);
+      setError("Failed to start conversation. Please try again.");
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleSelectConversation = (id: string) => {
+    router.push(`/conversation/${id}`);
+  };
+
+  // Get the last message for each conversation
+  const getLastMessage = (conv: Conversation) => {
+    if (conv.messages.length === 0) return "No messages";
+    const lastMsg = conv.messages[conv.messages.length - 1];
+    return lastMsg.content.length > 30
+      ? lastMsg.content.substring(0, 30) + "..."
+      : lastMsg.content;
+  };
+
+  // Get the timestamp for the last message
+  const getLastMessageTime = (conv: Conversation) => {
+    if (conv.messages.length === 0) return "";
+    const lastMsg = conv.messages[conv.messages.length - 1];
+    const date = new Date(lastMsg.created_at);
+
+    // If today, show time, otherwise show date
+    const now = new Date();
+    if (date.toDateString() === now.toDateString()) {
+      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    } else {
+      return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+    }
+  };
+
+  return (
+    <div className="flex h-full">
+      {/* Left sidebar - Conversations */}
+      <div className="w-80 border-r border-gray-200 flex flex-col">
+        <div className="p-4 border-b border-gray-200 flex justify-between items-center">
+          <h1 className="text-xl font-semibold">almostzenbut_no</h1>
+          <Button
+            variant="ghost"
+            className="p-1 h-8 w-8"
+            onClick={() => { }}
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 20h9"></path>
+              <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+            </svg>
+          </Button>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+
+        <div className="p-4 border-b border-gray-200">
+          <div className="flex items-center gap-2">
+            <div className="font-medium">Messages</div>
+            <div className="text-blue-500 text-sm font-medium ml-auto">Request (1)</div>
+          </div>
+        </div>
+
+        <div className="flex-1 overflow-y-auto">
+          {error && (
+            <div className="p-3 m-4 text-sm text-red-700 bg-red-100 rounded">
+              {error}
+            </div>
+          )}
+
+          {conversations.length === 0 ? (
+            <div className="p-4 text-gray-500 text-sm">No conversations yet. Start a new one!</div>
+          ) : (
+            <div className="space-y-1">
+              {conversations.map((conv: Conversation) => (
+                <div
+                  key={conv.id}
+                  className="px-4 py-3 hover:bg-gray-100 cursor-pointer flex items-center gap-3"
+                  onClick={() => handleSelectConversation(conv.id)}
+                >
+                  <Avatar className="h-12 w-12 bg-blue-500">
+                    <span className="text-sm font-medium">
+                      {conv.title?.charAt(0) || "C"}
+                    </span>
+                  </Avatar>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex justify-between items-center">
+                      <div className="font-medium truncate">{conv.title}</div>
+                      <div className="text-xs text-gray-500">{getLastMessageTime(conv)}</div>
+                    </div>
+                    <div className="text-sm text-gray-500 truncate">
+                      {getLastMessage(conv)}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* New conversation button */}
+        <div className="p-4 border-t border-gray-200">
+          <form onSubmit={handleSubmit} className="flex gap-2">
+            <Input
+              value={inputValue}
+              onChange={handleInputChange}
+              placeholder="Start a new conversation..."
+              className="flex-1 rounded-full border-gray-300"
+              disabled={isSubmitting}
+            />
+            <Button
+              type="submit"
+              disabled={isSubmitting}
+              className="rounded-full bg-blue-500 hover:bg-blue-600 text-white"
+            >
+              {isSubmitting ? "..." : "+"}
+            </Button>
+          </form>
+        </div>
+      </div>
+
+      {/* Right content - Welcome screen */}
+      <div className="flex-1 flex flex-col items-center justify-center p-6 bg-gray-50">
+        <div className="text-center max-w-md">
+          <h2 className="text-2xl font-bold mb-4">Welcome to Aral Chat</h2>
+          <p className="text-gray-600 mb-6">
+            Select a conversation from the sidebar or start a new one to begin chatting.
+          </p>
+          <div className="flex justify-center">
+            <Avatar className="h-24 w-24 bg-blue-500">
+              <span className="text-2xl font-medium">A</span>
+            </Avatar>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

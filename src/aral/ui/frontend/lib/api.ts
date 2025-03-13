@@ -2,19 +2,31 @@
  * API client for communicating with the Aral backend
  */
 
-// Get the API URL from the environment variable or default to the current origin
-const getApiBaseUrl = () => {
-  // In the browser, use the environment variable if available
-  if (typeof window !== 'undefined') {
-    return process.env.NEXT_PUBLIC_API_URL || '';
+// Get the API URL from environment variable or use default
+export const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
+
+// Helper function to build API URLs
+export function getApiUrl(path: string): string {
+  // If we have a custom API URL (like in dev mode), use it
+  if (API_URL) {
+    return `${API_URL}${path}`;
   }
-  // In server-side rendering, we don't have access to the browser's origin
-  return process.env.NEXT_PUBLIC_API_URL || '';
-};
+
+  // Otherwise, use relative paths
+  return path;
+}
+
+// API functions
+export async function fetchConversations() {
+  const response = await fetch(getApiUrl('/api/conversations'));
+  if (!response.ok) {
+    throw new Error(`API error: ${response.status}`);
+  }
+  return response.json();
+}
 
 export async function sendMessage(conversationId: string, message: string) {
-  const apiBaseUrl = getApiBaseUrl();
-  const response = await fetch(`${apiBaseUrl}/api/message`, {
+  const response = await fetch(getApiUrl('/api/message'), {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -26,18 +38,7 @@ export async function sendMessage(conversationId: string, message: string) {
   });
 
   if (!response.ok) {
-    throw new Error('Failed to send message');
-  }
-
-  return response.json();
-}
-
-export async function getConversations() {
-  const apiBaseUrl = getApiBaseUrl();
-  const response = await fetch(`${apiBaseUrl}/api/conversations`);
-
-  if (!response.ok) {
-    throw new Error('Failed to fetch conversations');
+    throw new Error(`API error: ${response.status}`);
   }
 
   return response.json();

@@ -1,25 +1,19 @@
 from aral.agent import BaseAgent
 
 class SimpleAgent(BaseAgent):
-    def __init__(self):
-        # Initialize any state your agent needs
-        self.conversations = {}
+    def init(self):
+        # Any additional initialization can go here
+        pass
     
     def on_message(self, convo_id, message):
-        # Simple echo response for testing
-        if convo_id not in self.conversations:
-            self.conversations[convo_id] = []
+        # Add the user message to the store (already done in BaseAgent)
         
-        self.conversations[convo_id].append({"role": "user", "content": message})
-        response = f"Echo: {message}"
-        self.conversations[convo_id].append({"role": "assistant", "content": response})
+        # Generate a response - in a real agent, this would use an LLM
+        response = f"You said: {message}"
         
+        # Add the assistant response to the store and return it
+        self.message_store.add_message(convo_id, response, role="assistant")
         return response
-    
-    def get_conversations(self):
-        # Return all conversations for the UI
-        return [{"id": convo_id, "messages": messages} 
-                for convo_id, messages in self.conversations.items()]
 
 if __name__ == "__main__":
     import argparse

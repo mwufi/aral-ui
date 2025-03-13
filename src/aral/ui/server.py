@@ -1,9 +1,38 @@
 import os
 from pathlib import Path
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Body
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+from typing import List, Dict, Any, Optional
+
+
+class MessageRequest(BaseModel):
+    conversation_id: str
+    message: str
+
+
+class MessageResponse(BaseModel):
+    response: str
+
+
+class ConversationMessage(BaseModel):
+    id: str
+    content: str
+    role: str
+    created_at: str
+
+
+class Conversation(BaseModel):
+    id: str
+    title: str
+    messages: List[ConversationMessage]
+
+
+class ConversationsResponse(BaseModel):
+    conversations: List[Conversation]
+
 
 class UIServer:
     def __init__(self, agent, api_only=False):
@@ -38,6 +67,12 @@ class UIServer:
             conversation_id = data.get("conversation_id")
             message = data.get("message")
             
+            if not conversation_id or not message:
+                return JSONResponse(
+                    status_code=400,
+                    content={"error": "conversation_id and message are required"}
+                )
+            
             response = self.agent.on_message(conversation_id, message)
             return JSONResponse(content={"response": response})
         
@@ -52,11 +87,20 @@ class UIServer:
         # Only add the catch-all route if not in API-only mode
         if not self.api_only:
             @self.app.get("/{full_path:path}")
-            async def serve_frontend(full_path: str):
+            async def serve_frontend(full_path: str, request: Request):
                 # Only reached if the static files mount doesn't handle the request
                 static_export_dir = Path(__file__).parent / "frontend" / "out"
                 if not static_export_dir.exists():
                     return HTMLResponse(content="UI not built. Run 'cd src/aral/ui/frontend && bun run build' to build the UI.")
+                
+                # Check if this is a Next.js dynamic route
+                if full_path.startswith("conversation/"):
+                    # Serve the index.html for the conversation route
+                    index_path = static_export_dir / "index.html"
+                    if index_path.exists():
+                        with open(index_path, "r") as f:
+                            content = f.read()
+                        return HTMLResponse(content=content)
                 
                 # If we get here, the path wasn't found in the static export
                 return HTMLResponse(content="Page not found", status_code=404)

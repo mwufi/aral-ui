@@ -2,11 +2,66 @@ import os
 from pathlib import Path
 from .ui.server import UIServer
 from .ui.build import build_frontend
+from .storage import MessageStore
 import subprocess
 import threading
 
 class BaseAgent:
-    # ... other agent code ...
+    def __init__(self):
+        """Initialize the agent with a MessageStore."""
+        self.message_store = MessageStore()
+        self.init()
+    
+    def init(self):
+        """Override this method to initialize your agent."""
+        pass
+    
+    def on_message(self, convo_id, message):
+        """
+        Handle an incoming message.
+        
+        Args:
+            convo_id: The conversation ID
+            message: The message content
+            
+        Returns:
+            The response message content
+        """
+        # Add the user message to the store
+        self.message_store.add_message(convo_id, message, role="user")
+        
+        # Default implementation just echoes the message
+        response = f"Echo: {message}"
+        
+        # Add the assistant response to the store
+        self.message_store.add_message(convo_id, response, role="assistant")
+        
+        return response
+    
+    def get_conversations(self):
+        """
+        Get all conversations.
+        
+        Returns:
+            A list of conversations in a format suitable for the UI
+        """
+        conversations = self.message_store.get_all_conversations()
+        return [
+            {
+                "id": conv.id,
+                "title": conv.title,
+                "messages": [
+                    {
+                        "id": msg.id,
+                        "content": msg.content,
+                        "role": msg.role,
+                        "created_at": msg.created_at.isoformat(),
+                    }
+                    for msg in conv.messages
+                ]
+            }
+            for conv in conversations
+        ]
     
     def run(self, host="0.0.0.0", port=3000, api_port=None, dev_mode=False, auto_build=True):
         """
@@ -59,6 +114,7 @@ class BaseAgent:
             if auto_build and not ui_dir.exists():
                 print("🔨 First run detected! Building UI...")
                 print("⏳ This may take a minute, but only happens once...")
+                # In regular mode, we don't need to set the API URL since it will use relative paths
                 build_frontend()
                 print("🚀 UI built successfully! Starting server...")
             
