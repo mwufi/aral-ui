@@ -1,8 +1,21 @@
 "use client";
 
-import { ReactNode, useState } from "react";
+import { ReactNode, useState, useContext } from "react";
 import { Avatar as UIAvatar, AvatarImage } from "@/components/ui/avatar";
 import { ChevronDown, ChevronUp, Copy } from "lucide-react";
+import { createContext } from "react";
+import { GradientTheme } from "@/providers/theme-provider";
+
+// Create a context for the theme
+const ChatThemeContext = createContext<GradientTheme | null>(null);
+
+export const ChatThemeProvider = ({ children, theme }: { children: ReactNode, theme: GradientTheme }) => {
+    return (
+        <ChatThemeContext.Provider value={theme}>
+            {children}
+        </ChatThemeContext.Provider>
+    );
+};
 
 interface MessageBlockProps {
     role: "user" | "assistant";
@@ -43,14 +56,16 @@ const Avatar = ({ role }: MessageAvatarProps) => {
 const Bubble = ({ role, content }: MessageBubbleProps) => {
     const isUser = role === "user";
 
+    // For user messages, use black background to show the gradient through mix-blend-mode
+    // For assistant messages, use a higher z-index to place them above the gradient
     return (
         <div
             className={`rounded-2xl px-3 py-2 max-w-[80%] ${isUser
-                    ? "bg-blue-500 text-white"
-                    : "bg-white/80 backdrop-blur-sm text-gray-800 shadow-sm"
+                ? "bg-black text-white z-0" // User messages: black background to show gradient
+                : "bg-zinc-100 text-gray-800 relative" // Assistant messages: above the gradient
                 }`}
         >
-            <p className="text-sm whitespace-pre-wrap">{content}</p>
+            <p className="text-[15px] whitespace-pre-wrap">{content}</p>
         </div>
     );
 };
@@ -70,7 +85,7 @@ const CodeBubble = ({ language, content, messageId, blockIdx }: CodeBubbleProps)
     };
 
     return (
-        <div className="max-w-[95%] w-full bg-white/80 backdrop-blur-sm rounded-xl overflow-hidden shadow-sm my-1">
+        <div className="max-w-[95%] w-full bg-white/80 backdrop-blur-sm rounded-xl overflow-hidden shadow-sm my-1 relative z-20">
             <div className="bg-gray-100 px-4 py-1 flex justify-between items-center">
                 <span className="text-xs text-gray-500">
                     {language || 'Code'}
@@ -113,7 +128,7 @@ const Block = ({ role, children }: MessageBlockProps) => {
 
 const Timestamp = ({ timestamp, role }: { timestamp: string, role: "user" | "assistant" }) => {
     return (
-        <div className={`flex ${role === "user" ? "justify-end" : "justify-start"} mt-1`}>
+        <div className={`flex ${role === "user" ? "justify-end" : "justify-start"} mt-1 relative z-20`}>
             <p className="text-xs text-gray-500">
                 {new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
             </p>
