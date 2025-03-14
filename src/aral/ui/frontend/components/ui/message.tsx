@@ -1,8 +1,22 @@
 "use client";
 
-import { ReactNode, useState } from "react";
+import { ReactNode, useState, useContext } from "react";
 import { Avatar as UIAvatar, AvatarImage } from "@/components/ui/avatar";
 import { ChevronDown, ChevronUp, Copy } from "lucide-react";
+import { GradientBubble } from "@/components/ui/gradient-bubble";
+import { createContext } from "react";
+import { GradientTheme } from "@/providers/theme-provider";
+
+// Create a context for the theme
+const ChatThemeContext = createContext<GradientTheme | null>(null);
+
+export const ChatThemeProvider = ({ children, theme }: { children: ReactNode, theme: GradientTheme }) => {
+    return (
+        <ChatThemeContext.Provider value={theme}>
+            {children}
+        </ChatThemeContext.Provider>
+    );
+};
 
 interface MessageBlockProps {
     role: "user" | "assistant";
@@ -39,17 +53,25 @@ const Avatar = ({ role }: MessageAvatarProps) => {
         </UIAvatar>
     );
 };
+
 const Bubble = ({ role, content }: MessageBubbleProps) => {
     const isUser = role === "user";
+    const theme = useContext(ChatThemeContext);
 
+    // If it's a user message and we have a theme, use the gradient bubble
+    if (isUser && theme) {
+        return <GradientBubble content={content} theme={theme} />;
+    }
+
+    // Otherwise use the default bubble
     return (
         <div
             className={`rounded-2xl px-3 py-2 max-w-[80%] ${isUser
-                    ? "bg-gradient-to-b from-blue-400 to-blue-600 text-white"
-                    : "bg-gradient-to-b from-zinc-50 to-zinc-100 text-gray-800"
+                ? "bg-transparent text-white"
+                : "bg-zinc-100 text-gray-800"
                 }`}
         >
-            <p className="text-sm whitespace-pre-wrap">{content}</p>
+            <p className="text-[15px] whitespace-pre-wrap">{content}</p>
         </div>
     );
 };

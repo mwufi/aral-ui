@@ -65,7 +65,7 @@ export function Sidebar({ conversations, currentConversationId, error }: Sidebar
     };
 
     return (
-        <div className="w-90 bg-white flex flex-col rounded-lg">
+        <div className="hidden md:block w-90 bg-white flex flex-col rounded-lg">
             <div className="p-4 flex justify-between items-center">
                 <h1 className="text-xl font-semibold">almostzenbut_no</h1>
                 <Button

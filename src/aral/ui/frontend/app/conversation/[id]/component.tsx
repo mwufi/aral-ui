@@ -7,7 +7,9 @@ import { fetchConversations, sendMessage } from "@/lib/api";
 import { Sidebar } from "@/components/ui/sidebar";
 import { MessageInput } from "@/components/ui/message-input";
 import { LoadingDots } from "@/components/ui/loading-dots";
-import { Message } from "@/components/ui/message";
+import { Message, ChatThemeProvider } from "@/components/ui/message";
+import { useChatTheme } from "@/providers/theme-provider";
+import { ThemeSettings } from "@/components/ui/theme-settings";
 
 // Define types for our data
 interface Message {
@@ -29,6 +31,8 @@ export default function ConversationPageComponent() {
     const conversationId = params.id as string;
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const chatContainerRef = useRef<HTMLDivElement>(null);
+
+    const { activeTheme } = useChatTheme();
 
     const [conversations, setConversations] = useState<Conversation[]>([]);
     const [inputValue, setInputValue] = useState<string>("");
@@ -212,7 +216,7 @@ export default function ConversationPageComponent() {
                 <header className="bg-white py-4 px-4 flex items-center rounded-t-lg">
                     <div className="flex items-center mx-auto w-full">
                         <Message.Avatar role="assistant" />
-                        <div className="ml-2">
+                        <div className="ml-2 flex-1">
                             <h1 className="text-base font-semibold">
                                 {currentConversation?.title || "Conversation"}
                             </h1>
@@ -220,65 +224,70 @@ export default function ConversationPageComponent() {
                                 {currentConversation?.messages?.length || 0} messages
                             </p>
                         </div>
+
+                        {/* Theme settings */}
+                        <ThemeSettings />
                     </div>
                 </header>
 
                 {/* Chat area */}
                 <div className="flex-1 overflow-y-auto bg-white" ref={chatContainerRef}>
-                    <div className="mx-auto w-full p-4">
-                        {currentConversation?.messages.map((msg: Message) => {
-                            const messageBlocks = parseMessageContent(msg.content);
-                            const role = msg.role as "user" | "assistant";
+                    <ChatThemeProvider theme={activeTheme}>
+                        <div className="mx-auto w-full p-4">
+                            {currentConversation?.messages.map((msg: Message) => {
+                                const messageBlocks = parseMessageContent(msg.content);
+                                const role = msg.role as "user" | "assistant";
 
-                            return (
-                                <div key={msg.id} className="mb-6">
-                                    <div className="flex gap-2">
-                                        <div className={`shrink-0 ${role === "user" ? "order-last" : "order-first"}`}>
-                                            <Message.Avatar role={role} />
+                                return (
+                                    <div key={msg.id} className="mb-6">
+                                        <div className="flex gap-2">
+                                            <div className={`shrink-0 ${role === "user" ? "hidden md:block order-last" : "order-first"}`}>
+                                                <Message.Avatar role={role} />
+                                            </div>
+                                            <div className="flex-1">
+                                                <Message.Block role={role}>
+                                                    {messageBlocks.map((block, idx) => (
+                                                        <div key={idx} className={`flex ${role === "user" ? "justify-end" : "justify-start"} w-full`}>
+                                                            {block.type === 'code' ? (
+                                                                <Message.CodeBubble
+                                                                    language={block.language}
+                                                                    content={block.content}
+                                                                    messageId={msg.id}
+                                                                    blockIdx={idx}
+                                                                />
+                                                            ) : (
+                                                                <Message.Bubble
+                                                                    role={role}
+                                                                    content={block.content}
+                                                                />
+                                                            )}
+                                                        </div>
+                                                    ))}
+                                                </Message.Block>
+                                                <Message.Timestamp timestamp={msg.created_at} role={role} />
+                                            </div>
                                         </div>
-                                        <div className="flex-1">
-                                            <Message.Block role={role}>
-                                                {messageBlocks.map((block, idx) => (
-                                                    <div key={idx} className={`flex ${role === "user" ? "justify-end" : "justify-start"} w-full`}>
-                                                        {block.type === 'code' ? (
-                                                            <Message.CodeBubble
-                                                                language={block.language}
-                                                                content={block.content}
-                                                                messageId={msg.id}
-                                                                blockIdx={idx}
-                                                            />
-                                                        ) : (
-                                                            <Message.Bubble
-                                                                role={role}
-                                                                content={block.content}
-                                                            />
-                                                        )}
-                                                    </div>
-                                                ))}
-                                            </Message.Block>
-                                            <Message.Timestamp timestamp={msg.created_at} role={role} />
+                                    </div>
+                                );
+                            })}
+
+                            {/* Loading indicator when waiting for response */}
+                            {isWaitingForResponse && (
+                                <div className="flex justify-start">
+                                    <div className="flex gap-2 max-w-[80%]">
+                                        <Message.Avatar role="assistant" />
+                                        <div className="rounded-2xl px-3 py-2 bg-white/80 backdrop-blur-sm text-gray-800 shadow-sm">
+                                            <p className="text-sm flex items-center">
+                                                <LoadingDots />
+                                            </p>
                                         </div>
                                     </div>
                                 </div>
-                            );
-                        })}
+                            )}
 
-                        {/* Loading indicator when waiting for response */}
-                        {isWaitingForResponse && (
-                            <div className="flex justify-start">
-                                <div className="flex gap-2 max-w-[80%]">
-                                    <Message.Avatar role="assistant" />
-                                    <div className="rounded-2xl px-3 py-2 bg-white/80 backdrop-blur-sm text-gray-800 shadow-sm">
-                                        <p className="text-sm flex items-center">
-                                            <LoadingDots />
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-
-                        <div ref={messagesEndRef} />
-                    </div>
+                            <div ref={messagesEndRef} />
+                        </div>
+                    </ChatThemeProvider>
                 </div>
 
                 {/* Input area */}
