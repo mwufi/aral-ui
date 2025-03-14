@@ -224,8 +224,8 @@ export default function ConversationPageComponent() {
                 </header>
 
                 {/* Chat area */}
-                <div className="flex-1 overflow-y-auto" ref={chatContainerRef}>
-                    <div className="mx-auto w-full p-4 bg-white">
+                <div className="flex-1 overflow-y-auto bg-white" ref={chatContainerRef}>
+                    <div className="mx-auto w-full p-4">
                         {currentConversation?.messages.map((msg: Message) => {
                             const messageBlocks = parseMessageContent(msg.content);
                             const role = msg.role as "user" | "assistant";
