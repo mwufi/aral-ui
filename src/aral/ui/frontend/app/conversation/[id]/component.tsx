@@ -231,9 +231,9 @@ export default function ConversationPageComponent() {
                 </header>
 
                 {/* Chat area */}
-                <div className="flex-1 overflow-y-auto bg-white" ref={chatContainerRef}>
+                <div className="flex-1 overflow-y-auto bg-white relative" ref={chatContainerRef}>
                     <ChatThemeProvider theme={activeTheme}>
-                        <div className="mx-auto w-full p-4">
+                        <div className="mx-auto w-full p-4 min-h-full">
                             {currentConversation?.messages.map((msg: Message) => {
                                 const messageBlocks = parseMessageContent(msg.content);
                                 const role = msg.role as "user" | "assistant";
@@ -276,7 +276,7 @@ export default function ConversationPageComponent() {
                                 <div className="flex justify-start">
                                     <div className="flex gap-2 max-w-[80%]">
                                         <Message.Avatar role="assistant" />
-                                        <div className="rounded-2xl px-3 py-2 bg-white/80 backdrop-blur-sm text-gray-800 shadow-sm">
+                                        <div className="rounded-2xl px-3 py-2 bg-white/80 backdrop-blur-sm text-gray-800 shadow-sm relative z-20">
                                             <p className="text-sm flex items-center">
                                                 <LoadingDots />
                                             </p>
