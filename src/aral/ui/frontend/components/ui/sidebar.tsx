@@ -3,6 +3,7 @@ import { useRouter } from "next/navigation";
 import { v4 as uuidv4 } from "uuid";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { useChatTheme } from "@/providers/theme-provider";
 
 interface Message {
     id: string;
@@ -25,6 +26,7 @@ interface SidebarProps {
 
 export function Sidebar({ conversations, currentConversationId, error }: SidebarProps) {
     const router = useRouter();
+    const { activeTheme } = useChatTheme();
 
     const handleNewConversation = () => {
         // Create a new conversation ID
@@ -67,7 +69,7 @@ export function Sidebar({ conversations, currentConversationId, error }: Sidebar
     return (
         <div className="hidden md:block w-90 bg-white flex flex-col rounded-lg">
             <div className="p-4 flex justify-between items-center">
-                <h1 className="text-xl font-semibold">almostzenbut_no</h1>
+                <h1 className="text-xl font-semibold">claude-3-5-sonnet-20240620</h1>
                 <Button
                     variant="ghost"
                     className="p-2 h-10 w-10 rounded-full hover:bg-gray-100"
@@ -101,7 +103,7 @@ export function Sidebar({ conversations, currentConversationId, error }: Sidebar
                                 className={`px-4 py-3 my-1 hover:bg-zinc-50 rounded-lg cursor-pointer flex items-center gap-3 ${conv.id === currentConversationId ? 'bg-zinc-50' : ''}`}
                                 onClick={() => handleSelectConversation(conv.id)}
                             >
-                                <Avatar className="h-12 w-12 bg-blue-500">
+                                <Avatar className="h-12 w-12 bg-blue-500 z-20">
                                     <span className="text-sm font-medium">
                                         {conv.title?.charAt(0) || "C"}
                                     </span>

@@ -10,29 +10,9 @@ import { GradientTheme } from "@/providers/theme-provider";
 const ChatThemeContext = createContext<GradientTheme | null>(null);
 
 export const ChatThemeProvider = ({ children, theme }: { children: ReactNode, theme: GradientTheme }) => {
-    const { colors, angle = 45 } = theme;
-    // Create a gradient that's large enough to cover the entire viewport
-    const gradient = `linear-gradient(${angle}deg, ${colors.join(', ')})`;
-
     return (
         <ChatThemeContext.Provider value={theme}>
-            <div className="relative w-full h-full">
-                {/* Gradient overlay that will blend with black message bubbles */}
-                <div
-                    className="fixed inset-0 w-full h-full pointer-events-none z-10"
-                    style={{
-                        background: gradient,
-                        mixBlendMode: 'screen',
-                        backgroundAttachment: 'fixed', // This makes the gradient fixed while scrolling
-                        backgroundSize: '100vw 100vh' // Ensure the gradient covers the entire viewport
-                    }}
-                />
-
-                {/* Actual chat content */}
-                <div className="relative z-0">
-                    {children}
-                </div>
-            </div>
+            {children}
         </ChatThemeContext.Provider>
     );
 };
@@ -82,7 +62,7 @@ const Bubble = ({ role, content }: MessageBubbleProps) => {
         <div
             className={`rounded-2xl px-3 py-2 max-w-[80%] ${isUser
                 ? "bg-black text-white z-0" // User messages: black background to show gradient
-                : "bg-zinc-100 text-gray-800 z-20 relative" // Assistant messages: above the gradient
+                : "bg-zinc-100 text-gray-800 relative" // Assistant messages: above the gradient
                 }`}
         >
             <p className="text-[15px] whitespace-pre-wrap">{content}</p>

@@ -7,6 +7,7 @@ export type GradientTheme = {
     name: string;
     colors: string[];
     angle?: number;
+    assistantMessages: boolean;
 };
 
 // Define the default themes
@@ -15,31 +16,37 @@ const defaultThemes: GradientTheme[] = [
         name: 'Messenger',
         colors: ['#00c6ff', '#0072ff'],
         angle: 135, // Diagonal from top-right to bottom-left
+        assistantMessages: true,
     },
     {
         name: 'Instagram',
         colors: ['#833ab4', '#fd1d1d', '#fcb045'],
         angle: 45, // Diagonal from top-left to bottom-right
+        assistantMessages: true,
     },
     {
         name: 'Sunset',
         colors: ['#ff7e5f', '#feb47b'],
         angle: 180, // Horizontal from left to right
+        assistantMessages: true,
     },
     {
         name: 'Ocean',
         colors: ['#2193b0', '#6dd5ed'],
         angle: 135, // Diagonal from top-right to bottom-left
+        assistantMessages: true,
     },
     {
         name: 'Forest',
         colors: ['#11998e', '#38ef7d'],
         angle: 120, // Diagonal angle
+        assistantMessages: true,
     },
     {
         name: 'Neon',
         colors: ['#f953c6', '#b91d73', '#00f2fe'],
         angle: 60, // Diagonal angle
+        assistantMessages: true,
     },
 ];
 
@@ -64,6 +71,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         name: 'Custom',
         colors: ['#00c6ff', '#0072ff'],
         angle: 135,
+        assistantMessages: true,
     });
     const [availableThemes, setAvailableThemes] = useState<GradientTheme[]>(defaultThemes);
 
