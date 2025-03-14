@@ -65,7 +65,7 @@ export function Sidebar({ conversations, currentConversationId, error }: Sidebar
     };
 
     return (
-        <div className="w-80 bg-white flex flex-col">
+        <div className="w-90 bg-white flex flex-col rounded-lg">
             <div className="p-4 flex justify-between items-center">
                 <h1 className="text-xl font-semibold">almostzenbut_no</h1>
                 <Button
@@ -94,11 +94,11 @@ export function Sidebar({ conversations, currentConversationId, error }: Sidebar
                 {conversations.length === 0 ? (
                     <div className="p-4 text-gray-500 text-sm">No conversations yet. Start a new one!</div>
                 ) : (
-                    <div>
+                    <div className="p-1">
                         {conversations.map((conv: Conversation) => (
                             <div
                                 key={conv.id}
-                                className={`px-4 py-3 hover:bg-gray-100 cursor-pointer flex items-center gap-3 ${conv.id === currentConversationId ? 'bg-gray-100' : ''}`}
+                                className={`px-4 py-3 my-1 hover:bg-zinc-50 rounded-lg cursor-pointer flex items-center gap-3 ${conv.id === currentConversationId ? 'bg-zinc-50' : ''}`}
                                 onClick={() => handleSelectConversation(conv.id)}
                             >
                                 <Avatar className="h-12 w-12 bg-blue-500">
@@ -107,12 +107,12 @@ export function Sidebar({ conversations, currentConversationId, error }: Sidebar
                                     </span>
                                 </Avatar>
                                 <div className="flex-1 min-w-0">
+                                    <div className="font-medium truncate">{conv.title}</div>
                                     <div className="flex justify-between items-center">
-                                        <div className="font-medium truncate">{conv.title}</div>
-                                        <div className="text-xs text-gray-500">{getLastMessageTime(conv)}</div>
-                                    </div>
-                                    <div className="text-sm text-gray-500 truncate">
-                                        {getLastMessage(conv)}
+                                        <div className="text-sm text-gray-500 truncate">
+                                            {getLastMessage(conv)}
+                                        </div>
+                                        <div className="text-xs text-gray-500 w-20 text-right">{getLastMessageTime(conv)}</div>
                                     </div>
                                 </div>
                             </div>

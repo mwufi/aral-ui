@@ -17,9 +17,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        <div className="flex h-screen">
+        <div className="flex h-screen p-4 pl-0 bg-zinc-50">
           {/* Left sidebar - Navigation */}
-          <div className="w-16 bg-white border-r border-gray-200 flex flex-col items-center py-6">
+          <div className="w-16 bg-zinc-50 flex flex-col items-center py-6 rounded-lg">
             <div className="flex flex-col items-center space-y-6">
               {/* Instagram-like icon */}
               <div className="w-6 h-6">

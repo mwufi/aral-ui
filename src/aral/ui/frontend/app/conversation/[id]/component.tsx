@@ -198,7 +198,7 @@ export default function ConversationPageComponent() {
     };
 
     return (
-        <div className="flex h-full w-full">
+        <div className="flex h-full w-full gap-4">
             {/* Left sidebar - Conversations */}
             <Sidebar
                 conversations={conversations}
@@ -207,10 +207,10 @@ export default function ConversationPageComponent() {
             />
 
             {/* Right content - Chat */}
-            <div className="flex-1 flex flex-col h-full border-l border-gray-200 bg-gray-50">
+            <div className="flex-1 flex flex-col h-full bg-gray-50">
                 {/* Header */}
-                <header className="bg-white border-b border-gray-200 py-4 px-4 flex items-center">
-                    <div className="flex items-center max-w-3xl mx-auto w-full">
+                <header className="bg-white py-4 px-4 flex items-center rounded-t-lg">
+                    <div className="flex items-center mx-auto w-full">
                         <Message.Avatar role="assistant" />
                         <div className="ml-2">
                             <h1 className="text-base font-semibold">
@@ -225,7 +225,7 @@ export default function ConversationPageComponent() {
 
                 {/* Chat area */}
                 <div className="flex-1 overflow-y-auto" ref={chatContainerRef}>
-                    <div className="max-w-3xl mx-auto w-full p-4">
+                    <div className="mx-auto w-full p-4 bg-white">
                         {currentConversation?.messages.map((msg: Message) => {
                             const messageBlocks = parseMessageContent(msg.content);
                             const role = msg.role as "user" | "assistant";
@@ -282,7 +282,7 @@ export default function ConversationPageComponent() {
                 </div>
 
                 {/* Input area */}
-                <div className="p-4 max-w-3xl mx-auto w-full">
+                <div className="p-4 mx-auto w-full">
                     <div className="bg-white/50 backdrop-blur-sm rounded-xl shadow-sm p-3">
                         <MessageInput
                             value={inputValue}

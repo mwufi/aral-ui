@@ -39,15 +39,14 @@ const Avatar = ({ role }: MessageAvatarProps) => {
         </UIAvatar>
     );
 };
-
 const Bubble = ({ role, content }: MessageBubbleProps) => {
     const isUser = role === "user";
 
     return (
         <div
             className={`rounded-2xl px-3 py-2 max-w-[80%] ${isUser
-                    ? "bg-blue-500 text-white"
-                    : "bg-white/80 backdrop-blur-sm text-gray-800 shadow-sm"
+                    ? "bg-gradient-to-b from-blue-400 to-blue-600 text-white"
+                    : "bg-gradient-to-b from-zinc-50 to-zinc-100 text-gray-800"
                 }`}
         >
             <p className="text-sm whitespace-pre-wrap">{content}</p>
