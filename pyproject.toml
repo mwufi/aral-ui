@@ -1,6 +1,6 @@
 [project]
 name = "aral"
-version = "0.1.0"
+version = "0.1.2"
 description = "One-Line Agent Deployment Framework"
 authors = [
     { name = "Zen T", email = "ztang230@gmail.com" }
@@ -31,7 +31,7 @@ allow-direct-references = true
 packages = ["src/aral"]
 
 [tool.setuptools.package-data]
-aral = ["ui/frontend/.next/**/*", "ui/frontend/public/**/*"]
+aral = ["ui/frontend/.next/**/*", "ui/frontend/**/*"]
 
 [project.scripts]
 aral-build-ui = "aral.ui.build:main"

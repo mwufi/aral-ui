@@ -1,7 +1,7 @@
 import os
 from pathlib import Path
 from .ui.server import UIServer
-from .ui.build import build_frontend
+from .ui.build import build_frontend, ensure_deps
 from .storage import MessageStore
 import subprocess
 import threading
@@ -145,12 +145,20 @@ class BaseAgent:
             server = UIServer(self, api_only=True)
             api_url = f"http://{host if host != '0.0.0.0' else 'localhost'}:{api_port}"
             print(f"🚀 API server running at {api_url}")
+
+            print(f"Running frontend at {frontend_dir}")
             
             # Start the Next.js dev server in a separate thread
             def run_frontend_dev():
                 current_dir = os.getcwd()
                 try:
                     os.chdir(frontend_dir)
+                    
+                    # Ensure dependencies are installed before running dev server
+                    if not ensure_deps(frontend_dir):
+                        print("❌ Cannot run dev server without dependencies.")
+                        return
+                    
                     # Set environment variable for the API URL
                     env = os.environ.copy()
                     env["NEXT_PUBLIC_API_URL"] = api_url
